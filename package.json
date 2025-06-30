@@ -1,12 +1,45 @@
 {
     "name": "minepack",
     "version": "0.0.1",
+    "description": "Scaffold Minecraft Bedrock addon projects with ease.",
+    "bin": {
+        "minekit": "./bin/index.js"
+    },
+    "main": "./bin/index.js",
     "type": "module",
+    "keywords": [
+        "minecraft",
+        "bedrock",
+        "addon",
+        "cli",
+        "scaffold",
+        "minekit"
+    ],
+    "files": [
+        "src",
+        "bin",
+        "config",
+        "templates",
+        "README.md",
+        "LICENSE"
+    ],
+    "author": "Wayfind Entertainment",
+    "license": "MIT",
     "scripts": {
         "format": "wayfindpc format",
-        "lint": "wayfindpc lint"
+        "lint": "wayfindpc lint",
+        "start": "node bin/index.js"
     },
     "devDependencies": {
         "wayfindpc": "^1.2.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "dependencies": {
+        "canvas": "^3.1.2",
+        "commander": "^14.0.0",
+        "inquirer": "^12.6.3",
+        "uuid": "^11.1.0"
     }
 }
