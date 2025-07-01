@@ -20,3 +20,13 @@
  * @property {string} category - Logical group (e.g., 'manifest', 'json', 'naming')
  * @property {string} description - Short explanation of what the rule checks
  */
+
+/**
+ * @readonly
+ * @enum {'error' | 'warning' | 'info'}
+ */
+export const ValidationLevel = {
+    ERROR: 2,
+    WARNING: 1,
+    INFO: 0
+}
