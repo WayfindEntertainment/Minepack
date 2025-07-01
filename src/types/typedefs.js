@@ -7,8 +7,8 @@
  * @typedef {Object} ValidationResult
  * @property {'error' | 'warning' | 'info'} level - Severity of the validation issue
  * @property {string} message - Human-readable explanation of the issue
+ * @property {string} rule - Optional rule key that triggered the issue
  * @property {string} [file] - Optional relative file path where the issue occurred
- * @property {string} [rule] - Optional rule key that triggered the issue
  * @property {string} [suggestion] - Optional suggestion for fixing the issue
  */
 
