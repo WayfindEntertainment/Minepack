@@ -1,14 +1,12 @@
 #!/usr/bin/env node
 /* eslint-disable import/extensions */
 /* eslint-disable no-console */
+// minepack-cli/index.js
 
 import { Command } from 'commander'
-// import inquirer from 'inquirer'
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs'
+import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
-// import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
-// import { createCanvas } from 'canvas'
 // import { loadTemplate, applyTemplate } from './template-loader.js'
 // import { templates } from './template-registry.js'
 
@@ -58,13 +56,15 @@ program
     .option('--yes, -y', 'Skip prompts and use defaults')
     .option('--silent', 'Suppress output')
     .option('--debug', 'Show detailed debug logs')
+    .option('--rp-only', 'Include only resource pack')
+    .option('--bp-only', 'Include only behavior pack')
     // .option('--version <ver>', 'Target Minecraft version (e.g. 1.20.81)')
     // .option('--preview', 'Use the latest preview version settings')
     // .option('--min-engine <ver>', 'Override min_engine_version manually')
     // .option('--experimental', 'Enable experimental manifest features')
     // .option('--template <name>', 'Starter template to use', 'barebones')
     // .option('--list-templates', 'List available templates')
-    .action(() => import('../src/new.js').then((m) => m.default()))
+    .action((args) => import('../src/new.js').then((m) => m.default(args)))
 
 program
     .command('build')
@@ -105,3 +105,109 @@ if (!process.argv.slice(2).length) {
 } else {
     program.parse()
 }
+// program
+//     .hook('preAction', () => {
+//         if (program.opts().listTemplates) {
+//             console.log('\nAvailable templates:\n')
+//             // eslint-disable-next-line no-restricted-syntax
+//             for (const [name, desc] of Object.entries(templates)) {
+//                 console.log(`  ${name.padEnd(14)} - ${desc}`)
+//             }
+//             console.log('\nUse with: npx minepack --template=<name>\n')
+//             process.exit(0)
+//         }
+//     })
+//     .parse()
+
+// const writeAddon = (answers) => {
+//     const basePath = path.resolve(process.cwd(), answers.addonName.replace(/\s+/g, '_'))
+//     if (!existsSync(basePath)) mkdirSync(basePath)
+
+//     const bpEnabled = !options.noBp && !options.rpOnly
+//     const rpEnabled = !options.noRp && !options.bpOnly
+//     let rpUUID = null
+
+//     if (rpEnabled) {
+//         const rpPath = path.join(basePath, 'RP')
+//         mkdirSync(rpPath)
+//         rpUUID = uuidv4()
+//         const manifest = {
+//             format_version: 2,
+//             header: {
+//                 name: `${answers.addonName} RP`,
+//                 description: answers.description,
+//                 uuid: rpUUID,
+//                 version: [1, 0, 0],
+//                 min_engine_version: (options.minEngine || options.version || '1.20.81')
+//                     .split('.')
+//                     .map(Number)
+//             },
+//             modules: [
+//                 {
+//                     type: 'resources',
+//                     uuid: uuidv4(),
+//                     version: [1, 0, 0]
+//                 }
+//             ],
+//             metadata: {
+//                 authors: [answers.creatorName],
+//                 generated_with: 'minepack'
+//             }
+//         }
+//         writeFileSync(path.join(rpPath, 'manifest.json'), JSON.stringify(manifest, null, 2))
+//         createPackIcon(path.join(rpPath, 'pack_icon.png'), answers.addonName)
+//     }
+
+//     if (bpEnabled) {
+//         const bpPath = path.join(basePath, 'BP')
+//         mkdirSync(bpPath)
+//         const dependencies = rpUUID ? [{ uuid: rpUUID, version: [1, 0, 0] }] : []
+//         const manifest = createManifest({
+//             name: `${answers.addonName} BP`,
+//             description: answers.description,
+//             version: options.minEngine || options.version || '1.20.81',
+//             type: 'script',
+//             dependencies,
+//             authors: [answers.creatorName]
+//         })
+//         writeFileSync(path.join(bpPath, 'manifest.json'), JSON.stringify(manifest, null, 2))
+
+//         const scriptsPath = path.join(bpPath, 'scripts')
+//         mkdirSync(scriptsPath)
+//         writeFileSync(path.join(scriptsPath, 'main.js'), '// Entry point for behavior scripts\n')
+//         createPackIcon(path.join(bpPath, 'pack_icon.png'), answers.addonName)
+//     }
+
+//     if (!options.noReadme) {
+//         const readme = `# ${answers.addonName}\n\n${answers.description}\n\nCreated by ${answers.creatorName} using minepack.`
+//         writeFileSync(path.join(basePath, 'README.md'), readme)
+//     }
+
+//     if (!options.noGitignore) {
+//         const gitignore = `node_modules/\n.DS_Store\n.vscode/\n*.mcaddon\nBP/scripts/*.js.map\n`
+//         writeFileSync(path.join(basePath, '.gitignore'), gitignore)
+//     }
+
+//     const config = {
+//         name: answers.addonName,
+//         namespace: answers.namespace,
+//         template: options.template,
+//         version: options.version || '1.20.81'
+//     }
+//     writeFileSync(path.join(basePath, 'minepack.json'), JSON.stringify(config, null, 2))
+
+//     if (!options.silent) {
+//         console.log(`✅ Addon scaffold created at: ${basePath}\n`)
+//         console.log(`Next steps:`)
+//         if (bpEnabled) console.log(`  - Add scripts to BP/scripts/`)
+//         if (rpEnabled) console.log(`  - Add textures, models, or sounds to RP/`)
+//         console.log(`  - Test your addon in Minecraft or Minecraft Preview`)
+//     }
+// }
+
+// const run = async () => {
+//     const answers = await promptUser()
+//     writeAddon(answers)
+// }
+
+// run()
