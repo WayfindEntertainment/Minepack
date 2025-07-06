@@ -80,24 +80,19 @@ program
     .action(() => import('../src/build.js').then((m) => m.default()))
 
 program
-  .command('validate')
-  .description('Validate addon files for errors and warnings')
-  .option('--bp <path>', 'Path to behavior pack folder')
-  .option('--rp <path>', 'Path to resource pack folder')
-  .option('--silent', 'Suppress output')
-  .option('--fail-on-warnings', 'Exit with code 1 if warnings are present')
-  .option('--no-fail-on-errors', 'Do not exit with error code for errors')
-  .option('--report <path>', 'Write results to report JSON file')
-  .action((options) =>
-    import('../src/validate.js').then((m) => m.default({
-      bp: options.bp,
-      rp: options.rp,
-      silent: !!options.silent,
-      failOnWarnings: !!options.failOnWarnings,
-      noFailOnErrors: !!options.noFailOnErrors,
-      reportFile: options.report || null
-    }))
-  )
+    .command('validate')
+    .description('Run validation checks on BP and/or RP folders')
+    .option('--bp <folder>', 'Behavior pack root folder')
+    .option('--rp <folder>', 'Resource pack root folder')
+    .option('-s, --silent', 'Suppress all console output')
+    .option('-v, --verbose', 'Print info-level messages to the console')
+    .option('-o, --report <file>', 'Write full report output to a JSON file')
+    .option('-W, --warnings-as-errors', 'Exit with code 1 if warnings are present')
+    .option('-R, --errors-as-warnings', 'Do not fail on errors')
+    .action(async (options) => {
+        const { validate } = await import('../src/validate.js')
+        await validate(options)
+    })
 
 program
     .command('dev')
