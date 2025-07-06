@@ -1,5 +1,7 @@
 import path from 'path'
 import fs from 'fs'
+import chalk from 'chalk'
+
 import { VALIDATION_RULES } from './validation/validation-rules.js'
 import { ValidationLevel } from './validation/constants.js'
 import { normalizePath } from './utils/validatePath.js'
@@ -79,16 +81,16 @@ export default async function validate(options = {}) {
 
     if (!options.silent) {
         if (errors.length > 0) {
-            console.log(`\n❌ ${errors.length} error${errors.length !== 1 ? 's' : ''} found:`)
+            console.log(chalk.red(`\n❌ ${errors.length} error${errors.length !== 1 ? 's' : ''} found:`))
             errors.forEach((e) => {
-                console.log(`  [${e.rule}] ${e.message} ('${e.file}')`)
+                console.log(chalk.red(`  [${e.rule}] ${e.message} ('${e.file}')`))
             })
         }
 
         if (warnings.length > 0) {
-            console.log(`\n⚠️ ${warnings.length} warning${warnings.length !== 1 ? 's' : ''} found:`)
+            console.log(chalk.red(`\n⚠️ ${warnings.length} warning${warnings.length !== 1 ? 's' : ''} found:`))
             warnings.forEach((w) => {
-                console.log(`  [${w.rule}] ${w.message} ('${w.file}')`)
+                console.log(chalk.yellow(`  [${w.rule}] ${w.message} ('${w.file}')`))
             })
         }
 
@@ -115,10 +117,12 @@ export default async function validate(options = {}) {
     }
 
     if (errors.length > 0 && !ignoreErrors) {
+        console.log(chalk.red(`Validation failed due to ${errors.length} error${errors.length !== 1 ? 's' : ''}.`))
         process.exit(1)
     }
 
     if (warnings.length > 0 && failOnWarning) {
+        console.log(chalk.yellow(`Validation failed due to ${warnings.length} warning${warnings.length !== 1 ? 's' : ''}.`))
         process.exit(1)
     }
 
