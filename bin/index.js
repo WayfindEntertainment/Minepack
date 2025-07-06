@@ -80,11 +80,24 @@ program
     .action(() => import('../src/build.js').then((m) => m.default()))
 
 program
-    .command('validate')
-    .description('Validate addon files for errors and warnings')
-    .option('--silent', 'Suppress output')
-    .option('--debug', 'Show detailed debug logs')
-    .action(() => import('../src/validate.js').then((m) => m.default()))
+  .command('validate')
+  .description('Validate addon files for errors and warnings')
+  .option('--bp <path>', 'Path to behavior pack folder')
+  .option('--rp <path>', 'Path to resource pack folder')
+  .option('--silent', 'Suppress output')
+  .option('--fail-on-warnings', 'Exit with code 1 if warnings are present')
+  .option('--no-fail-on-errors', 'Do not exit with error code for errors')
+  .option('--report <path>', 'Write results to report JSON file')
+  .action((options) =>
+    import('../src/validate.js').then((m) => m.default({
+      bp: options.bp,
+      rp: options.rp,
+      silent: !!options.silent,
+      failOnWarnings: !!options.failOnWarnings,
+      noFailOnErrors: !!options.noFailOnErrors,
+      reportFile: options.report || null
+    }))
+  )
 
 program
     .command('dev')
