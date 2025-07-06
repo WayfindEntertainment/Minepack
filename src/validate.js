@@ -41,6 +41,11 @@ export default async function validate(options = {}) {
         process.exit(1)
     }
 
+    if (options.silent && options.verbose) {
+        console.error('❌ Options --silent and --verbose cannot be used together.')
+        process.exit(1)
+    }
+
     /** @type {RuleMessage[]} */
     const errors = []
     /** @type {RuleMessage[]} */
