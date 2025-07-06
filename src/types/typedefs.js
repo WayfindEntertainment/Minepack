@@ -24,6 +24,12 @@
  */
 
 /**
+ * @typedef {Object} RuleContext
+ * @property {string} bpRoot - Absolute or relative path to the behavior pack root
+ * @property {string} rpRoot - Absolute or relative path to the resource pack root
+ */
+
+/**
  * @readonly
  * @enum {'error' | 'warning' | 'info'}
  */
