@@ -1,141 +1,121 @@
-export default function validateProject() {
-    console.log('VALIDATION COMPLETE!')
+import path from 'path'
+import fs from 'fs'
+import { VALIDATION_RULES } from './validation/validation-rules.js'
+import { ValidationLevel } from './validation/constants.js'
+import { normalizePath } from './utils/validatePath.js'
+
+function sanitizeDir(inputPath) {
+    const resolved = path.resolve(inputPath)
+    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
+        return null
+    }
+    return normalizePath(resolved)
 }
 
-// // validate.js
-// import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
-// import path from 'path'
-// import { formatVersionMap } from './config/formatVersions'
+/**
+ * A simplified representation of a validation result paired with its source rule.
+ * @typedef {Object} RuleMessage
+ * @property {string} rule - The rule key that generated this message
+ * @property {string} file - Absolute file path that triggered the rule
+ * @property {string} message - Human-readable description of the issue
+ */
 
-// const readManifest = (dir) => {
-//     const file = path.join(dir, 'manifest.json')
-//     if (!existsSync(file)) return null
-//     try {
-//         const data = JSON.parse(readFileSync(file, 'utf8'))
-//         return { path: file, data }
-//     } catch (e) {
-//         return { path: file, error: 'Invalid JSON' }
-//     }
-// }
+/**
+ * Main entry point for the `validate` subcommand.
+ * @param {Object} options Note that although the `bp` and `rp` inputs are both
+ * optional, at least one MUST be provided or the function will not validate.
+ * @param {string} [options.bp] - Behavior pack folder path (relative or absolute)
+ * @param {string} [options.rp] - Resource pack folder path (relative or absolute)
+ * @param {boolean} [options.silent] - Suppress console output
+ * @param {boolean} [options.verbose] - Show info-level messages
+ * @param {boolean} [options.warningsAsErrors] - Treat warnings as errors
+ * @param {boolean} [options.errorsAsWarnings] - Downgrade errors to warnings
+ * @param {string} [options.report] - Optional path to write report.json
+ */
+export default async function validate(options = {}) {
+    const bpRoot = await sanitizeDir(options.bp)
+    const rpRoot = await sanitizeDir(options.rp)
 
-// const getMetadata = (bp, rp) => {
-//     const source = bp?.data?.metadata?.minekit ? bp : rp?.data?.metadata?.minekit ? rp : null
-//     return {
-//         namespace: source?.data?.metadata?.minekit?.namespace || 'addon',
-//         template: source?.data?.metadata?.minekit?.template || 'barebones',
-//         version: source?.data?.metadata?.minekit?.version || '1.20.81',
-//         from: source?.path || '(default)'
-//     }
-// }
+    if (!bpRoot && !rpRoot) {
+        console.error('❌ At least one of --bp or --rp must be provided and valid.')
+        process.exit(1)
+    }
 
-// const isUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
-// const isVersionArray = (val) =>
-//     Array.isArray(val) && val.length === 3 && val.every(Number.isInteger)
+    /** @type {RuleMessage[]} */
+    const errors = []
+    /** @type {RuleMessage[]} */
+    const warnings = []
+    /** @type {RuleMessage[]} */
+    const info = []
 
-// const render = (result, mode) => {
-//     const showPasses = mode === 'all'
-//     for (const entry of result) {
-//         if (entry.level === 'pass' && !showPasses) continue
-//         const tag =
-//             entry.level === 'error' ? '✖ ERROR' : entry.level === 'warn' ? '⚠ WARNING' : '✔'
-//         console.log(`${tag} ${entry.message}`)
-//     }
-// }
+    /** @type {{ bp?: string, rp?: string }} */
+    const context = {}
+    if (bpRoot) context.bp = bpRoot
+    if (rpRoot) context.rp = rpRoot
 
-// const validateFormatAndTopLevel = (dir, subdir, topKey, type, result) => {
-//     const fullDir = path.join(dir, subdir)
-//     if (!existsSync(fullDir)) return
-//     const files = readdirSync(fullDir).filter((f) => f.endsWith('.json'))
+    Object.entries(VALIDATION_RULES).forEach(([key, rule]) => {
+        const results = rule.apply(context)
+        results.forEach((res) => {
+            const entry = {
+                rule: key,
+                file: res.file,
+                message: res.message
+            }
 
-//     // eslint-disable-next-line no-restricted-syntax
-//     for (const file of files) {
-//         const full = path.join(fullDir, file)
-//         try {
-//             const json = JSON.parse(readFileSync(full, 'utf8'))
-//             if (Object.keys(json).length === 0) {
-//                 result.push({
-//                     level: 'error',
-//                     message: `${type.toUpperCase()} file ${file} is empty`
-//                 })
-//                 continue
-//             }
-//             if (!json.format_version) {
-//                 result.push({
-//                     level: 'error',
-//                     message: `${type.toUpperCase()} file ${file} is missing 'format_version'`
-//                 })
-//             } else if (!formatVersionMap[type]?.includes(json.format_version)) {
-//                 result.push({
-//                     level: 'error',
-//                     message: `${type.toUpperCase()} file ${file} has unsupported format_version '${json.format_version}'`
-//                 })
-//             } else {
-//                 result.push({
-//                     level: 'pass',
-//                     message: `${type.toUpperCase()} file ${file} uses supported format_version`
-//                 })
-//             }
-//             if (!json[topKey]) {
-//                 result.push({
-//                     level: 'error',
-//                     message: `${type.toUpperCase()} file ${file} is missing top-level key '${topKey}'`
-//                 })
-//             }
-//         } catch (e) {
-//             result.push({
-//                 level: 'error',
-//                 message: `Invalid JSON in ${type.toUpperCase()} file ${file}: ${e.message}`
-//             })
-//         }
-//     }
-// }
+            if (rule.level === ValidationLevel.ERROR) {
+                errors.push(entry)
+            } else if (rule.level === ValidationLevel.WARNING) {
+                warnings.push(entry)
+            } else {
+                info.push(entry)
+            }
+        })
+    })
 
-// const validate = () => {
-//     const args = process.argv.slice(2)
-//     const mode = args.includes('--errors-only')
-//         ? 'errors'
-//         : args.includes('--quiet')
-//           ? 'warnings'
-//           : 'all'
+    if (!options.silent) {
+        if (errors.length > 0) {
+            console.log(`\n❌ ${errors.length} error${errors.length !== 1 ? 's' : ''} found:`)
+            errors.forEach((e) => {
+                console.log(`  [${e.rule}] ${e.message} ('${e.file}')`)
+            })
+        }
 
-//     const cwd = process.cwd()
-//     const bpPath = path.join(cwd, 'BP')
-//     const rpPath = path.join(cwd, 'RP')
-//     const bp = readManifest(bpPath)
-//     const rp = readManifest(rpPath)
+        if (warnings.length > 0) {
+            console.log(`\n⚠️ ${warnings.length} warning${warnings.length !== 1 ? 's' : ''} found:`)
+            warnings.forEach((w) => {
+                console.log(`  [${w.rule}] ${w.message} ('${w.file}')`)
+            })
+        }
 
-//     const result = []
+        if (options.verbose && info.length > 0) {
+            console.log(`\nℹ️ ${info.length} info message${info.length !== 1 ? 's' : ''}:`)
+            info.forEach((i) => {
+                console.log(`  [${i.rule}] ${i.message} ('${i.file}')`)
+            })
+        }
 
-//     if (!bp && !rp) {
-//         result.push({ level: 'error', message: 'No manifest.json found in BP/ or RP/' })
-//         render(result, mode)
-//         process.exit(1)
-//     }
+        if (errors.length === 0 && warnings.length === 0) {
+            console.log('✅ No issues found.')
+        }
+    }
 
-//     if (bp?.error) {
-//         result.push({ level: 'error', message: `BP manifest error: ${bp.error}` })
-//     } else if (bp) {
-//         result.push({ level: 'pass', message: 'Found valid BP manifest' })
-//     }
+    if (reportPath) {
+        const report = {
+            errors,
+            warnings,
+            info,
+            timestamp: new Date().toISOString()
+        }
+        await fs.promises.writeFile(reportPath, JSON.stringify(report, null, 4), 'utf8')
+    }
 
-//     if (rp?.error) {
-//         result.push({ level: 'error', message: `RP manifest error: ${rp.error}` })
-//     } else if (rp) {
-//         result.push({ level: 'pass', message: 'Found valid RP manifest' })
-//     }
+    if (errors.length > 0 && !ignoreErrors) {
+        process.exit(1)
+    }
 
-//     const meta = getMetadata(bp, rp)
-//     result.push({ level: 'pass', message: `Namespace: ${meta.namespace}` })
-//     result.push({ level: 'pass', message: `Template: ${meta.template}` })
-//     result.push({ level: 'pass', message: `Minecraft version: ${meta.version}` })
+    if (warnings.length > 0 && failOnWarning) {
+        process.exit(1)
+    }
 
-//     validateFormatAndTopLevel(rpPath, 'items', 'minecraft:item', 'item', result)
-//     validateFormatAndTopLevel(rpPath, 'blocks', 'minecraft:block', 'block', result)
-//     validateFormatAndTopLevel(bpPath, 'recipes', 'minecraft:recipe_shaped', 'recipe', result)
-
-//     console.log('\nMinekit Validation Report')
-//     console.log('==========================')
-//     render(result, mode)
-// }
-
-// validate()
+    process.exit(0)
+}
