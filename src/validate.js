@@ -23,6 +23,62 @@ function sanitizeDir(inputPath) {
  */
 
 /**
+ * Resolves the final path for a validation report based on user input.
+ *
+ * Supports either:
+ * - a direct path to a `.json` file (e.g., `./report.json`)
+ * - a directory path (e.g., `./output/`) in which `report.json` will be placed
+ *
+ * If the path does not exist:
+ * - If it ends in `.json`, it will attempt to create the parent directory
+ * - If it does not include an extension, it's assumed to be a directory, and
+ *   `report.json` will be placed inside it
+ *
+ * Throws if the path ends in an unsupported extension (e.g., `.txt`)
+ *
+ * @param {string} userInput - The raw path provided by the user
+ * @returns {string} - Absolute path to the output report.json file
+ * @modifies Filesystem
+ */
+function resolveReportPath(userInput) {
+    const resolved = path.resolve(userInput)
+    const ext = path.extname(resolved)
+
+    if (fs.existsSync(resolved)) {
+        const stats = fs.statSync(resolved)
+
+        if (stats.isDirectory()) {
+            // If it's an existing directory, place report.json inside it
+            return path.join(resolved, 'report.json')
+        }
+
+        if (ext === '.json') {
+            // Valid existing JSON file path
+            return resolved
+        }
+
+        // Invalid file extension on existing file
+        throw new Error(`Invalid --report extension: must be .json (got "${ext}")`)
+    }
+
+    // Path does not exist yet
+    if (!ext) {
+        // No extension — assume it's a directory path
+        fs.mkdirSync(resolved, { recursive: true })
+        return path.join(resolved, 'report.json')
+    }
+
+    if (ext !== '.json') {
+        // Explicitly provided file with unsupported extension
+        throw new Error(`Invalid --report extension: must be .json (got ".${ext}")`)
+    }
+
+    // Valid .json file path that doesn't exist yet — ensure parent folder exists
+    fs.mkdirSync(path.dirname(resolved), { recursive: true })
+    return resolved
+}
+
+/**
  * Main entry point for the `validate` subcommand.
  * @param {Object} options Note that although the `bp` and `rp` inputs are both
  * optional, at least one MUST be provided or the function will not validate.
@@ -37,6 +93,7 @@ function sanitizeDir(inputPath) {
 export default async function validate(options = {}) {
     const bpRoot = await sanitizeDir(options.bp)
     const rpRoot = await sanitizeDir(options.rp)
+    let reportPath
 
     if (!bpRoot && !rpRoot) {
         console.error('❌ At least one of --bp or --rp must be provided and valid.')
@@ -46,6 +103,15 @@ export default async function validate(options = {}) {
     if (options.silent && options.verbose) {
         console.error('❌ Options --silent and --verbose cannot be used together.')
         process.exit(1)
+    }
+
+    if (options.report) {
+        try {
+            reportPath = resolveReportPath(options.report)
+        } catch (err) {
+            console.error(chalk.red(`Error: ${err.message}`))
+            process.exit(1)
+        }
     }
 
     /** @type {RuleMessage[]} */
